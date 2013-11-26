@@ -8,6 +8,7 @@
 *.cbp
 *.depend
 *.layout
+*.cbTemp
 
 
 #################

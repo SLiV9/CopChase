@@ -6,10 +6,10 @@
 
 board* import_board(FILE* f)
 {
-    int w, h, n, i, v;
     board* B = malloc(sizeof(board));
 
     // Set the dimensions.
+    int w, h;
     fscanf(f, "%i\n", &w);
     B->width = w;
     fscanf(f, "%i\n", &h);
@@ -18,27 +18,29 @@ board* import_board(FILE* f)
 
     // Make every space not blocked by default.
     B->blocked = malloc(w * h * sizeof(bool));
-    for (i = 0; i < w * h; i++)
+    for (int i = 0; i < w * h; i++)
     {
         B->blocked[i] = false;
     }
 
     // Read which spaces should become blocked.
-    fscanf(f, "%i|", &n);
-    for (i = 0; i < n; i++)
+    int nblocked;
+    fscanf(f, "%i|", &nblocked);
+    for (int i = 0; i < nblocked; i++)
     {
-        fscanf(f, "%i", &v);
+        int blockpos;
+        fscanf(f, "%i", &blockpos);
 
-        if (v >= 0 && v < w * h)
+        if (blockpos >= 0 && blockpos < w * h)
         {
-            B->blocked[v] = true;
+            B->blocked[blockpos] = true;
         }
         else
         {
-            printf("Boardblocker out of bounds! v = %i.\n", v);
+            printf("Boardblocker out of bounds! blockpos = %i.\n", blockpos);
         }
 
-        if (i < n - 1)
+        if (i < nblocked - 1)
         {
             fscanf(f, ",");
         }

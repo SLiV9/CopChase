@@ -8,17 +8,28 @@
 #include "challenge.h"
 #include "check.h"
 
-#define MAJOR 1
-#define MINOR 1
+#define MAJOR 2
+#define MINOR 0
 #define MAX_CALC 1000000
 #define MAX_WORK 5000
 
 int main(int argc, char* argv[])
 {
-    int i, j, logged = 0, saved = 0, verbatim = 0, maxnum = 0;
+    int logged = 0, saved = 0, verbatim = 0, maxnum = 0;
     printf("CopChase Solver\n");
     printf("< version %i.%i >\n\n", MAJOR, MINOR);
 
+    // The resources we shall be using:
+    // A board.
+    board* B;
+    // An array of pieces.
+    piece** P;
+    // A challenge.
+    challenge* C;
+
+    // Read the arguments.
+    //      boardfile piecesfile [challengefile] [outputfile] [logfile] [verbatim]
+    // Any optional [-file] argument can be set to "null" if not used.
     if (argc < 3)
     {
         printf("Too few arguments. No boardfile or piecesfile specified.\nAborting.\n\n");
@@ -31,14 +42,23 @@ int main(int argc, char* argv[])
     char* outputfile = "null";
     char* logfile = "null";
     if (argc >= 4)
+    {
         challengefile = argv[3];
+    }
     if (argc >= 5)
+    {
         outputfile = argv[4];
+    }
     if (argc >= 6)
+    {
         logfile = argv[5];
+    }
     if (argc >= 7)
+    {
         verbatim = atoi(argv[6]);
+    }
 
+    // Open an output file for writing down the results.
     FILE* output;
     if (strcmp(outputfile,"null") != 0)
     {
@@ -54,6 +74,7 @@ int main(int argc, char* argv[])
         fprintf(output, "\n###\n\n");
     }
 
+    // Open a log file for writing down logs.
     FILE* log;
     if (strcmp(logfile,"null") != 0)
     {
@@ -70,20 +91,26 @@ int main(int argc, char* argv[])
     }
 
     if (verbatim)
+    {
         printf("Saved: %i\tLogged: %i\n\n", saved, logged);
+    }
 
-    FILE* f = fopen(boardfile, "r");
+    FILE* f;
+
+    // Import the board from the boardfile.
+    f = fopen(boardfile, "r");
     if (f == NULL)
     {
         printf("Unable to open <%s>.\n", boardfile);
         return -1;
     }
-    board* B = import_board(f);
+    B = import_board(f);
     fclose(f);
     if (logged)
+    {
         fprintf(log, "Imported board from %s.\n", boardfile);
+    }
 
-    piece** P;
     f = fopen(piecesfile, "r");
     if (f == NULL)
     {
@@ -93,9 +120,10 @@ int main(int argc, char* argv[])
     int n_pieces = import_pieces(&P, f, &maxnum);
     fclose(f);
     if (logged)
+    {
         fprintf(log, "Imported pieces from %s.\n", piecesfile);
+    }
 
-    challenge* C;
     if (strcmp(challengefile,"null") != 0)
     {
         f = fopen(challengefile, "r");
@@ -107,13 +135,17 @@ int main(int argc, char* argv[])
         C = import_challenge(f);
         fclose(f);
         if (logged)
+        {
             fprintf(log, "Imported challenge from %s.\n", challengefile);
+        }
     }
     else
     {
         C = empty_challenge();
         if (logged)
+        {
             fprintf(log, "Created empty challenge.\n");
+        }
     }
 
     if (logged)
@@ -123,9 +155,11 @@ int main(int argc, char* argv[])
     num = calc_poss(C, B->size);
     printf("Number of possibilities: %i.\n\n", num);
     if (saved)
+    {
         fprintf(output, "Number of possibilities: %i.\n\n", num);
+    }
 
-    // BEGIN
+    // BEGIN (OF HELL)
 
     piece *Q = malloc(sizeof(piece));
     Q->pos = malloc(maxnum * sizeof(char));
@@ -148,23 +182,23 @@ int main(int argc, char* argv[])
             if (pc == 0)
             {
                 //fprintf(output, "pc == 0; (%i,%i)\n", ori[0], spot[0]);
-                for (j = 0; j < B->size; j++)
+                for (int j = 0; j < B->size; j++)
                 {
                     t[0][j] = B->blocked[j];
                 }
 
-                for (j = 0; j < num; j++)
+                for (int j = 0; j < num; j++)
                 {
                     m[0][j] = 1;
                 }
             }
             else
             {
-                for (j = 0; j < B->size; j++)
+                for (int j = 0; j < B->size; j++)
                 {
                     t[pc][j] = t[pc - 1][j];
                 }
-                for (j = 0; j < num; j++)
+                for (int j = 0; j < num; j++)
                 {
                     m[pc][j] = m[pc - 1][j];
                 }
@@ -190,7 +224,7 @@ int main(int argc, char* argv[])
                         //binarystring(n_pieces, (1 << (n_pieces - 1 - pc)));
                         //printf(" <<\n");
 
-                        for (i = 0; i < Q->num; i++)
+                        for (int i = 0; i < Q->num; i++)
                         {
                             t[pc][spot[pc] + Q->pos[i]] = 1;
                         };
@@ -200,7 +234,7 @@ int main(int argc, char* argv[])
                             if (verbatim)
                             {
                                 printf("Found ");
-                                for (i = 0; i < n_pieces; i++)
+                                for (int i = 0; i < n_pieces; i++)
                                 {
                                     printf("p%i r%i/at%i, ", i, ori[i], spot[i]);
                                 }
@@ -211,7 +245,7 @@ int main(int argc, char* argv[])
                             if (saved)
                             {
                                 fprintf(output, "Found ");
-                                for (i = 0; i < n_pieces; i++)
+                                for (int i = 0; i < n_pieces; i++)
                                 {
                                     fprintf(output, "p%i r%i/at%i, ", i, ori[i], spot[i]);
                                 }
@@ -225,11 +259,11 @@ int main(int argc, char* argv[])
                         else
                         {
                             pc += 1;
-                            for (j = 0; j < num; j++)
+                            for (int j = 0; j < num; j++)
                             {
                                 m[pc][j] = m[pc - 1][j];
                             }
-                            for (j = 0; j < B->size; j++)
+                            for (int j = 0; j < B->size; j++)
                             {
                                 t[pc][j] = t[pc - 1][j];
                             }
@@ -296,6 +330,8 @@ int main(int argc, char* argv[])
 
     // END
 
+    // Done. Start freeing the used resources.
+
     free(Q->pos);
     free(Q->dx);
     free(Q->dy);
@@ -316,7 +352,11 @@ int main(int argc, char* argv[])
         fclose(log);
     }
 
+    // Done, all is freed, all is released.
+
     printf("\a\n\n[ Done. ]\n\n");
+
+    // Since our data needs to be read, wait for an any enter press to close.
     scanf("%i", &verbatim);
     return 0;
 }
