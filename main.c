@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "board.h"
 #include "piece.h"
@@ -149,7 +150,7 @@ int main(int argc, char* argv[])
                 //fprintf(output, "pc == 0; (%i,%i)\n", ori[0], spot[0]);
                 for (j = 0; j < B->size; j++)
                 {
-                    t[0][j] = B->open[j];
+                    t[0][j] = B->blocked[j];
                 }
 
                 for (j = 0; j < num; j++)
