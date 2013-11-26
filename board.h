@@ -12,7 +12,7 @@ typedef struct
 } board;
 
 // Import a board from a file.
-board* import_board(FILE* f);
+void import_board(board* B, FILE* f);
 
-// Free a board. Every imported board should be freed.
-void free_board(board* B);
+// Destroy a board. Every imported board should be destroyed.
+void destroy_board(board* B);

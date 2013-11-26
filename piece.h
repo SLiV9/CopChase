@@ -8,6 +8,13 @@ typedef struct
     char *at;
 } piece;
 
-int import_pieces(piece*** P, FILE* f, int* maxnum);
-void free_pieces(piece** P, int k);
-void turn(piece* Q, piece* P, int ori, int w);
+typedef struct
+{
+    piece* P;
+    int n_pieces;
+    int max_n_segments;
+} pieceholder;
+
+void import_pieces(pieceholder* H, FILE* f);
+void destroy_pieces(pieceholder* H);
+void turn(piece* target, piece* mold, int ori, int w);

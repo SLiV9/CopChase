@@ -4,9 +4,9 @@
 
 #include "board.h"
 
-board* import_board(FILE* f)
+void import_board(board* B, FILE* f)
 {
-    board* B = malloc(sizeof(board));
+    if (!B) return;
 
     // Set the dimensions.
     int w, h;
@@ -17,8 +17,8 @@ board* import_board(FILE* f)
     B->size = w * h;
 
     // Make every space not blocked by default.
-    B->blocked = malloc(w * h * sizeof(bool));
-    for (int i = 0; i < w * h; i++)
+    B->blocked = malloc(B->width * B->height * sizeof(bool));
+    for (int i = 0; i < B->width * B->height; i++)
     {
         B->blocked[i] = false;
     }
@@ -31,7 +31,7 @@ board* import_board(FILE* f)
         int blockpos;
         fscanf(f, "%i", &blockpos);
 
-        if (blockpos >= 0 && blockpos < w * h)
+        if (blockpos >= 0 && blockpos < B->width * B->height)
         {
             B->blocked[blockpos] = true;
         }
@@ -45,12 +45,9 @@ board* import_board(FILE* f)
             fscanf(f, ",");
         }
     }
-
-    return B;
 }
 
-void free_board(board* B)
+void destroy_board(board* B)
 {
     free(B->blocked);
-    free(B);
 }
