@@ -1,56 +1,77 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "challenge.h"
 
 challenge* import_challenge(FILE* f)
 {
-    int n, k, i, j, v;
-    char e;
     challenge* C = malloc(sizeof(challenge));
 
-    fscanf(f, "%i\n", &n);
-    C->n_streets = n;
-    C->street = malloc(n * sizeof(int*));
-    C->street_len = malloc(n * sizeof(int));
-    C->variance = malloc(n * sizeof(int));
-    C->openended = malloc(n * sizeof(char));
+    // Determine the number of streets.
+    int n_streets;
+    fscanf(f, "%i\n", &n_streets);
+    C->n_streets = n_streets;
+    C->street = malloc(n_streets * sizeof(int*));
+    C->street_len = malloc(n_streets * sizeof(int));
+    C->variance = malloc(n_streets * sizeof(int));
+    C->openended = malloc(n_streets * sizeof(char));
 
+    // Max_len is the maximum number of segments for a street.
     C->max_len = 0;
 
-    for (i = 0; i < n; i++)
+    // Read each of the streets.
+    for (int i = 0; i < n_streets; i++)
     {
-        fscanf(f, "%i|", &k);
-        C->street_len[i] = k;
-        if (k > C->max_len)
-            C->max_len = k;
-
-        C->street[i] = malloc(k * sizeof(int));
-        for (j = 0; j < k; j++)
+        // Determine the number of segments.
+        int n_segs;
+        fscanf(f, "%i|", &n_segs);
+        C->street_len[i] = n_segs;
+        if (n_segs > C->max_len)
         {
-            fscanf(f, "%i", &v);
-            C->street[i][j] = v;
-            if (j < k - 1)
+            C->max_len = n_segs;
+        }
+        C->street[i] = malloc(n_segs * sizeof(int));
+
+        // Read each street segment.
+        for (int j = 0; j < n_segs; j++)
+        {
+            int pos;
+            fscanf(f, "%i", &pos);
+            C->street[i][j] = pos;
+
+            if (j < n_segs - 1)
+            {
                 fscanf(f, ",");
+            }
         }
 
+        // Read the ending char, which is either ';' or '.'
+        char e;
         fscanf(f, "%c\n", &e);
         if (e == ';')
-            C->openended[i] = 1;
+        {
+            C->openended[i] = true;
+        }
         else
         {
-            C->openended[i] = 0;
+            C->openended[i] = false;
+
             if (e != '.')
+            {
                 printf("<< Unknown openended char '%c'", e);
+            }
         }
     }
 
+    // n_poss is calculated by a calc_poss() call.
     C->n_poss = 0;
     C->at = NULL;
 
     return C;
 }
 
+// The empty challenge has no streets. Any piece will match.
 challenge* empty_challenge()
 {
     challenge* C = malloc(sizeof(challenge));
@@ -68,59 +89,87 @@ challenge* empty_challenge()
     return C;
 }
 
+void free_challenge(challenge* C)
+{
+    for (int i  = 0; i < C->n_streets; i++)
+    {
+        free(C->street[i]);
+    }
+    free(C->street);
+
+    for (int i = 0; i < C->n_poss; i++)
+    {
+        free(C->at[i]);
+    }
+    free(C->at);
+
+    free(C->street_len);
+    free(C->variance);
+    free(C->openended);
+
+    free(C);
+}
+
 int calc_poss(challenge *C, int boardsize)
 {
-    int k, i, j, e, x, m;
-
     C->n_poss = 1;
 
-    for (i = 0; i < C->n_streets; i++)
+    for (int i = 0; i < C->n_streets; i++)
     {
-        k = C->street_len[i];
+        int k = C->street_len[i];
 
-        if (C->openended[i] == 0)
-            C->variance[i] = k * (k - 1) / 2;
-        else
+        if (C->openended[i])
         {
             C->variance[i] = k * (k - 1) * (k - 2) * (k - 3) / 24;
+        }
+        else
+        {
+            C->variance[i] = k * (k - 1) / 2;
         }
 
         C->n_poss *= C->variance[i];
     }
 
+    // If any of the streets have length less than 2, or if any of the
+    // openended streets have length less than 4, this challenge is unsolvable.
     if (C->n_poss <= 0)
+    {
+        C->n_poss = 0;
         return 0;
+    }
 
     printf("Calculating possibilities...\n");
 
+    // Prepare the at array with emptiness.
     C->at = malloc(C->n_poss * sizeof(int*));
-
-    for (i = 0; i < C->n_poss; i++)
+    for (int i = 0; i < C->n_poss; i++)
     {
         C->at[i] = malloc(boardsize * sizeof(int));
-        for (j = 0; j < boardsize; j++)
+        for (int j = 0; j < boardsize; j++)
         {
             C->at[i][j] = 0;
         }
     }
 
-    k = C->max_len;
+    int k = C->max_len;
+    int m;
+
     m = twofo(k);
     int E[m][k];
-    for (i = 0; i < m; i++)
+    for (int i = 0; i < m; i++)
     {
-        for (j = 0; j < k; j++)
+        for (int j = 0; j < k; j++)
         {
             E[i][j] = 0;
         }
     }
-    for (x = 1; x <= k; x++)
+    for (int x = 1; x <= k; x++)
     {
-        for (i = twofo(x); i < twofo(x+1); i++)
+        for (int i = twofo(x); i < twofo(x+1); i++)
         {
             E[i][x] = 2;
         }
-        for (i = 0; i < x; i++)
+        for (int i = 0; i < x; i++)
         {
             E[twofo(x) + i][i] = 1;
         }
@@ -130,35 +179,35 @@ int calc_poss(challenge *C, int boardsize)
 
     m = twefo(k);
     int F[m][k];
-    for (i = 0; i < m; i++)
+    for (int i = 0; i < m; i++)
     {
-        for (j = 0; j < k; j++)
+        for (int j = 0; j < k; j++)
         {
             F[i][j] = 0;
         }
     }
 
-    for (x = 1; x <= k; x++)
+    for (int x = 1; x <= k; x++)
     {
-        for (i = twefo(x); i < twefo(x+1); i++)
+        for (int i = twefo(x); i < twefo(x+1); i++)
         {
             F[i][x+2] = 1;
         }
 
-        for (i = 1; i < k; i++)
+        for (int i = 1; i < k; i++)
         {
-            for (j = trifo(i); j < trifo(i+1); j++)
+            for (int j = trifo(i); j < trifo(i+1); j++)
             {
                 F[twefo(x) + j][i+1] = 2;
             }
 
-            for (j = 1; j < k; j++)
+            for (int j = 1; j < k; j++)
             {
-                for (e = twofo(j); e < twofo(j + 1); e++)
+                for (int e = twofo(j); e < twofo(j + 1); e++)
                 {
                     F[twefo(x) + trifo(i) + e][j] = 2;
                 }
-                for (e = 0; e < twofo(j); e++)
+                for (int e = 0; e < twofo(j); e++)
                 {
                     F[twefo(x) + trifo(i) + twofo(j) + e][e] = 1;
                 }
@@ -177,12 +226,12 @@ int calc_poss(challenge *C, int boardsize)
 
     m = 1;
 
-    for (x = 0; x < C->n_streets; x++)
+    for (int x = 0; x < C->n_streets; x++)
     {
-        for (i = 0; i < C->n_poss; i++)
+        for (int i = 0; i < C->n_poss; i++)
         {
-            k = (i / m) % C->variance[x];
-            for (j = 0; j < C->street_len[x]; j++)
+            int k = (i / m) % C->variance[x];
+            for (int j = 0; j < C->street_len[x]; j++)
             {
                 if (C->openended[x])
                 {
@@ -198,26 +247,6 @@ int calc_poss(challenge *C, int boardsize)
     }
 
     return C->n_poss;
-}
-
-void free_challenge(challenge* C)
-{
-    int i;
-    for (i  = 0; i < C->n_streets; i++)
-    {
-        free(C->street[i]);
-    }
-    free(C->street);
-    free(C->street_len);
-    free(C->variance);
-    free(C->openended);
-
-    for (i = 0; i < C->n_poss; i++)
-    {
-        free(C->at[i]);
-    }
-    free(C->at);
-    free(C);
 }
 
 int twofo(int k)
