@@ -3,60 +3,55 @@
 
 #include "piece.h"
 
-void import_pieces(pieceholder* H, FILE* f)
+int import_pieces(piece*** P, FILE* f, int* maxnum)
 {
-    if (!H) return;
-
-    fscanf(f, "%i\n", &(H->n_pieces));
-    H->P = malloc(H->n_pieces * sizeof(piece));
-    H->max_n_segments = 0;
-
-    for (int i = 0; i < H->n_pieces; i++)
+    int k, i, n, j, x, y, a;
+    fscanf(f, "%i\n", &k);
+    *P = malloc(k * sizeof(piece*));
+    for (i = 0; i < k; i++)
     {
-        int n_segments;
-        fscanf(f, "%i|", &n_segments);
-        piece p = H->P[i];
-        p.id = 'A' + i;
-        p.num = n_segments;
-        if (n_segments > H->max_n_segments)
-        {
-            H->max_n_segments = n_segments;
-        }
-        p.pos = malloc(n_segments * sizeof(char));
-        p.dx = malloc(n_segments * sizeof(char));
-        p.dy = malloc(n_segments * sizeof(char));
-        p.at = malloc(n_segments * sizeof(char));
+        fscanf(f, "%i|", &n);
+        (*P)[i] = malloc(sizeof(piece));
+        (*P)[i]->id = 'A'+i;
+        (*P)[i]->num = n;
+        if (n > *maxnum)
+            *maxnum = n;
+        (*P)[i]->pos = malloc(n * sizeof(char));
+        (*P)[i]->dx = malloc(n * sizeof(char));
+        (*P)[i]->dy = malloc(n * sizeof(char));
+        (*P)[i]->at = malloc(n * sizeof(char));
 
-        for (int j = 0; j < n_segments; j++)
+        for (j = 0; j < n; j++)
         {
-            int x, y, a;
             fscanf(f, "%i.%i:%i", &y, &x, &a);
-            p.dx[j] = (char) x;
-            p.dy[j] = (char) y;
-            p.pos[j] = 0; // pas geinit bij turn
-            p.at[j] = (char) a;
-            if (j < n_segments-1)
-            {
+            (*P)[i]->dx[j] = (char) x;
+            (*P)[i]->dy[j] = (char) y;
+            (*P)[i]->pos[j] = 0; // pas geinit bij turn
+            (*P)[i]->at[j] = (char) a;
+            if (j < n-1)
                 fscanf(f, ",");
-            }
         }
         fscanf(f, "\n");
 
-        p.dx[0] = 0;
-        p.dy[0] = 0;
+        (*P)[i]->dx[0] = 0;
+        (*P)[i]->dy[0] = 0;
+
     }
+    return k;
 }
 
-void destroy_pieces(pieceholder* H)
+void free_pieces(piece **P, int k)
 {
-    for (int i = 0; i < H->n_pieces; i++)
+    int i;
+    for (i = 0; i < k; i++)
     {
-        free(H->P[i].pos);
-        free(H->P[i].dx);
-        free(H->P[i].dy);
-        free(H->P[i].at);
+        free(P[i]->pos);
+        free(P[i]->dx);
+        free(P[i]->dy);
+        free(P[i]->at);
+        free(P[i]);
     }
-    free(H->P);
+    free(P);
 }
 
 void turn(piece *Q, piece *P, int ori, int w)
@@ -64,15 +59,12 @@ void turn(piece *Q, piece *P, int ori, int w)
     //piece* newp = malloc(sizeof(piece));
     Q->id = P->id;
     Q->num = P->num;
+    Q->at = P->at;
 
-    for (int i = 0; i < Q->num; i++)
-    {
-        Q->at[i] = P->at[i];
-    }
-
+    int i;
     if (ori == 0)
     {
-        for (int i = 0; i < Q->num; i++)
+        for (i = 0; i < Q->num; i++)
         {
             Q->dx[i] = P->dx[i];
             Q->dy[i] = P->dy[i];
@@ -81,7 +73,7 @@ void turn(piece *Q, piece *P, int ori, int w)
     }
     if (ori == 1)
     {
-        for (int i = 0; i < Q->num; i++)
+        for (i = 0; i < Q->num; i++)
         {
             Q->dx[i] = P->dy[i];
             Q->dy[i] = - P->dx[i];
@@ -91,7 +83,7 @@ void turn(piece *Q, piece *P, int ori, int w)
     }
     if (ori == 2)
     {
-        for (int i = 0; i < Q->num; i++)
+        for (i = 0; i < Q->num; i++)
         {
             Q->dx[i] = - P->dx[i];
             Q->dy[i] = - P->dy[i];
@@ -101,7 +93,7 @@ void turn(piece *Q, piece *P, int ori, int w)
     }
     if (ori == 3)
     {
-        for (int i = 0; i < Q->num; i++)
+        for (i = 0; i < Q->num; i++)
         {
             Q->dx[i] = - P->dy[i];
             Q->dy[i] = P->dx[i];

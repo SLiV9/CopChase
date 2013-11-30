@@ -15,15 +15,15 @@
 
 int main(int argc, char* argv[])
 {
-    int logged = 0, saved = 0, verbatim = 1;
+    int logged = 0, saved = 0, verbatim = 0, maxnum = 0;
     printf("CopChase Solver\n");
     printf("< version %i.%i >\n\n", MAJOR, MINOR);
 
     // The resources we shall be using:
     // A board.
-    board B;
-    // A pieceholder.
-    pieceholder H;
+    board* B;
+    // An array of pieces.
+    piece** P;
     // A challenge.
     challenge* C;
 
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
         printf("Unable to open <%s>.\n", boardfile);
         return -1;
     }
-    import_board(&B, f);
+    B = import_board(f);
     fclose(f);
     if (logged)
     {
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
         printf("Unable to open <%s>.\n", piecesfile);
         return -1;
     }
-    import_pieces(&H, f);
+    int n_pieces = import_pieces(&P, f, &maxnum);
     fclose(f);
     if (logged)
     {
@@ -149,12 +149,10 @@ int main(int argc, char* argv[])
     }
 
     if (logged)
-    {
         fprintf(log, "\n");
-    }
 
     int num;
-    num = calc_poss(C, B.size);
+    num = calc_poss(C, B->size);
     printf("Number of possibilities: %i.\n\n", num);
     if (saved)
     {
@@ -163,15 +161,14 @@ int main(int argc, char* argv[])
 
     // BEGIN (OF HELL)
 
-    piece Q;
-    Q.pos = malloc(H.max_n_segments * sizeof(char));
-    Q.dx = malloc(H.max_n_segments * sizeof(char));
-    Q.dy = malloc(H.max_n_segments * sizeof(char));
-    Q.at = malloc(H.max_n_segments * sizeof(char));
+    piece *Q = malloc(sizeof(piece));
+    Q->pos = malloc(maxnum * sizeof(char));
+    Q->dx = malloc(maxnum * sizeof(char));
+    Q->dy = malloc(maxnum * sizeof(char));
 
-    int ori[H.n_pieces], spot[H.n_pieces];
-    char t[H.n_pieces][B.size];
-    char m[H.n_pieces][num];
+    int ori[n_pieces], spot[n_pieces];
+    char t[n_pieces][B->size];
+    char m[n_pieces][num];
     int pc = 0;
     ori[0] = 0;
     spot[0] = 0;
@@ -185,9 +182,9 @@ int main(int argc, char* argv[])
             if (pc == 0)
             {
                 //fprintf(output, "pc == 0; (%i,%i)\n", ori[0], spot[0]);
-                for (int j = 0; j < B.size; j++)
+                for (int j = 0; j < B->size; j++)
                 {
-                    t[0][j] = B.blocked[j];
+                    t[0][j] = B->blocked[j];
                 }
 
                 for (int j = 0; j < num; j++)
@@ -197,7 +194,7 @@ int main(int argc, char* argv[])
             }
             else
             {
-                for (int j = 0; j < B.size; j++)
+                for (int j = 0; j < B->size; j++)
                 {
                     t[pc][j] = t[pc - 1][j];
                 }
@@ -208,22 +205,17 @@ int main(int argc, char* argv[])
             }
 
             if (spot[pc] == 0)
-            {
-                turn(&Q, &(H.P[pc]), ori[pc], B.width);
-            }
+                turn(Q, P[pc], ori[pc], B->width);
 
-            if (spot[pc] < B.size)
+            if (spot[pc] < B->size)
             {
 
-                if (fits(&B, t[pc], &Q, spot[pc]))
+                if (fits(B, t[pc], Q, spot[pc]))
                 {
                     if (logged)
-                    {
-                        fprintf(log, "pc[%i]: %c; (%i,%i) fits",
-                                pc, Q.id, ori[pc], spot[pc]);
-                    }
+                        fprintf(log, "pc[%i]: %c; (%i,%i) fits", pc, Q->id, ori[pc], spot[pc]);
 
-                    matches(m[pc], C, &Q, spot[pc]);
+                    matches(m[pc], C, Q, spot[pc]);
 
                     if (matchex(m[pc], num))
                     {
@@ -232,17 +224,17 @@ int main(int argc, char* argv[])
                         //binarystring(n_pieces, (1 << (n_pieces - 1 - pc)));
                         //printf(" <<\n");
 
-                        for (int i = 0; i < Q.num; i++)
+                        for (int i = 0; i < Q->num; i++)
                         {
-                            t[pc][spot[pc] + Q.pos[i]] = 1;
+                            t[pc][spot[pc] + Q->pos[i]] = 1;
                         };
 
-                        if (pc == H.n_pieces - 1)
+                        if (pc == n_pieces - 1)
                         {
                             if (verbatim)
                             {
                                 printf("Found ");
-                                for (int i = 0; i < H.n_pieces; i++)
+                                for (int i = 0; i < n_pieces; i++)
                                 {
                                     printf("p%i r%i/at%i, ", i, ori[i], spot[i]);
                                 }
@@ -253,7 +245,7 @@ int main(int argc, char* argv[])
                             if (saved)
                             {
                                 fprintf(output, "Found ");
-                                for (int i = 0; i < H.n_pieces; i++)
+                                for (int i = 0; i < n_pieces; i++)
                                 {
                                     fprintf(output, "p%i r%i/at%i, ", i, ori[i], spot[i]);
                                 }
@@ -271,7 +263,7 @@ int main(int argc, char* argv[])
                             {
                                 m[pc][j] = m[pc - 1][j];
                             }
-                            for (int j = 0; j < B.size; j++)
+                            for (int j = 0; j < B->size; j++)
                             {
                                 t[pc][j] = t[pc - 1][j];
                             }
@@ -290,7 +282,7 @@ int main(int argc, char* argv[])
 
             if (!matchex(m[pc], num))
                 spot[pc] += 1;
-            if (spot[pc] >= B.size)
+            if (spot[pc] >= B->size)
             {
                 ori[pc] += 1;
                 spot[pc] = 0;
@@ -301,7 +293,7 @@ int main(int argc, char* argv[])
                 if (pc >= 0)
                 {
                     spot[pc] += 1;
-                    turn(&Q, &(H.P[pc]), ori[pc], B.width);
+                    turn(Q, P[pc], ori[pc], B->width);
                 }
             }
             if (pc < 0)
@@ -315,7 +307,7 @@ int main(int argc, char* argv[])
         else
         {
             printf("[ %i%% || %i million calc. perf. ]\n",
-                   25 * spot[0] / B.size + 25 * ori[0], work + 1);
+                   25 * spot[0] / B->size + 25 * ori[0], work + 1);
         }
     }
 
@@ -340,12 +332,13 @@ int main(int argc, char* argv[])
 
     // Done. Start freeing the used resources.
 
-    free(Q.pos);
-    free(Q.dx);
-    free(Q.dy);
+    free(Q->pos);
+    free(Q->dx);
+    free(Q->dy);
+    free(Q);
+    free_pieces(P, n_pieces);
     free_challenge(C);
-    destroy_pieces(&H);
-    destroy_board(&B);
+    free_board(B);
 
     if (saved)
     {
