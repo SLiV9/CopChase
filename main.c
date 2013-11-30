@@ -15,7 +15,7 @@
 
 int main(int argc, char* argv[])
 {
-    int logged = 0, saved = 0, verbatim = 0, maxnum = 0;
+    int logged = 0, saved = 0, verbatim = 0;
     printf("CopChase Solver\n");
     printf("< version %i.%i >\n\n", MAJOR, MINOR);
 
@@ -26,6 +26,8 @@ int main(int argc, char* argv[])
     piece** P;
     // A challenge.
     challenge* C;
+    // A temporary piece.
+    piece* Q;
 
     // Read the arguments.
     //      boardfile piecesfile [challengefile] [outputfile] [logfile] [verbatim]
@@ -117,7 +119,7 @@ int main(int argc, char* argv[])
         printf("Unable to open <%s>.\n", piecesfile);
         return -1;
     }
-    int n_pieces = import_pieces(&P, f, &maxnum);
+    int n_pieces = import_pieces(&P, f, &Q);
     fclose(f);
     if (logged)
     {
@@ -160,11 +162,6 @@ int main(int argc, char* argv[])
     }
 
     // BEGIN (OF HELL)
-
-    piece *Q = malloc(sizeof(piece));
-    Q->pos = malloc(maxnum * sizeof(char));
-    Q->dx = malloc(maxnum * sizeof(char));
-    Q->dy = malloc(maxnum * sizeof(char));
 
     int ori[n_pieces], spot[n_pieces];
     char t[n_pieces][B->size];
@@ -332,11 +329,7 @@ int main(int argc, char* argv[])
 
     // Done. Start freeing the used resources.
 
-    free(Q->pos);
-    free(Q->dx);
-    free(Q->dy);
-    free(Q);
-    free_pieces(P, n_pieces);
+    free_pieces(P, n_pieces, Q);
     free_challenge(C);
     free_board(B);
 
