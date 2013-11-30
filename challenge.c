@@ -110,32 +110,41 @@ void free_challenge(challenge* C)
     free(C);
 }
 
+unsigned int var(unsigned int k, unsigned int s);
+
 int calc_poss(challenge *C, int boardsize)
 {
-    C->n_poss = 1;
-
+    // If any of the streets have length less than 2, or if any of the
+    // openended streets have length less than 4, this challenge is unsolvable.
     for (int i = 0; i < C->n_streets; i++)
     {
         int k = C->street_len[i];
 
         if (C->openended[i])
         {
-            C->variance[i] = k * (k - 1) * (k - 2) * (k - 3) / 24;
+            if (k < 4)
+            {
+                return 0;
+            }
+
+            C->variance[i] = var(k, 4);
         }
         else
         {
-            C->variance[i] = k * (k - 1) / 2;
-        }
+            if (k < 2)
+            {
+                return 0;
+            }
 
-        C->n_poss *= C->variance[i];
+            C->variance[i] = var(k, 2);
+        }
     }
 
-    // If any of the streets have length less than 2, or if any of the
-    // openended streets have length less than 4, this challenge is unsolvable.
-    if (C->n_poss <= 0)
+    // n_poss is the product of the variances of the
+    C->n_poss = 1;
+    for (int i = 0; i < C->n_streets; i++)
     {
-        C->n_poss = 0;
-        return 0;
+        C->n_poss *= C->variance[i];
     }
 
     printf("Calculating possibilities...\n");
@@ -154,7 +163,7 @@ int calc_poss(challenge *C, int boardsize)
     int k = C->max_len;
     int m;
 
-    m = twofo(k);
+    m = var(k, 2);
     int E[m][k];
     for (int i = 0; i < m; i++)
     {
@@ -165,19 +174,27 @@ int calc_poss(challenge *C, int boardsize)
     }
     for (int x = 1; x <= k; x++)
     {
-        for (int i = twofo(x); i < twofo(x+1); i++)
+        int start = var(x, 2);
+        int end = var(x+1, 2);
+
+
+        for (int i = start; i < end; i++)
         {
             E[i][x] = 2;
         }
+
         for (int i = 0; i < x; i++)
         {
-            E[twofo(x) + i][i] = 1;
+            E[start + i][i] = 1;
         }
-        if (twofo(x+1) >= m)
+
+        if (end >= m)
+        {
             break;
+        }
     }
 
-    m = twefo(k);
+    m = var(k, 4);
     int F[m][k];
     for (int i = 0; i < m; i++)
     {
@@ -189,38 +206,47 @@ int calc_poss(challenge *C, int boardsize)
 
     for (int x = 1; x <= k; x++)
     {
-        for (int i = twefo(x); i < twefo(x+1); i++)
+        int start = var(x, 4);
+        int end = var(x+1, 4);
+
+        for (int i = start; i < end; i++)
         {
             F[i][x+2] = 1;
         }
 
         for (int i = 1; i < k; i++)
         {
-            for (int j = trifo(i); j < trifo(i+1); j++)
+            int ins = var(i, 3);
+            int out = var(i+1, 3);
+
+            for (int j = ins; j < out; j++)
             {
-                F[twefo(x) + j][i+1] = 2;
+                F[start + j][i+1] = 2;
             }
 
             for (int j = 1; j < k; j++)
             {
-                for (int e = twofo(j); e < twofo(j + 1); e++)
+                int go = var(j, 2);
+                int stop = var(j+1, 2);
+
+                for (int e = go; e < stop; e++)
                 {
-                    F[twefo(x) + trifo(i) + e][j] = 2;
+                    F[start + ins + e][j] = 2;
                 }
-                for (int e = 0; e < twofo(j); e++)
+                for (int e = 0; e < go; e++)
                 {
-                    F[twefo(x) + trifo(i) + twofo(j) + e][e] = 1;
+                    F[start + ins + go + e][e] = 1;
                 }
 
-                if (twefo(x) + trifo(i) + twofo(j+1) >= twefo(x) + trifo(i+1))
+                if (start + ins + stop >= start + out)
                     break;
             }
 
-            if (twefo(x) + trifo(i+1) >= twefo(x+1))
+            if (start + out >= end)
                 break;
         }
 
-        if (twefo(x+1) >= m)
+        if (end >= m)
             break;
     }
 
@@ -249,17 +275,18 @@ int calc_poss(challenge *C, int boardsize)
     return C->n_poss;
 }
 
-int twofo(int k)
+unsigned int var(unsigned int k, unsigned int s)
 {
-    return k * (k - 1) / 2;
-}
+    if (k == 0 || s == 0)
+    {
+        return 0;
+    }
 
-int trifo(int k)
-{
-    return k * (k - 1) * (k - 2) / 6;
-}
+    unsigned int r = k;
+    for (unsigned int i = 1; i < s; i++)
+    {
+        k *= (k-i) / (i+1);
+    }
 
-int twefo(int k)
-{
-    return k * (k - 1) * (k - 2) * (k - 3) / 24;
+    return r;
 }

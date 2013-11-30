@@ -11,6 +11,8 @@ typedef struct
     bool* openended;
 
     // Streets have a number of ways the cops and robbers can be placed on them.
+    // Each normal street contains one cop and one robber, CR.
+    // Each openended street contains two cops and two robbers, CRRC.
     // This is called their variance.
     int* variance;
 
@@ -25,6 +27,3 @@ challenge* import_challenge(FILE* f);
 challenge* empty_challenge();
 int calc_poss(challenge *C, int boardsize);
 void free_challenge(challenge* C);
-int twofo(int k);
-int trifo(int k);
-int twefo(int k);
