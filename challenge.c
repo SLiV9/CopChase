@@ -116,6 +116,10 @@ int calc_poss(challenge *C, int boardsize)
 {
     // If any of the streets have length less than 2, or if any of the
     // openended streets have length less than 4, this challenge is unsolvable.
+    // The number of possibilities to place CR on a street of length k, is the same
+    // as the number of possibilities to place k-2 "nulls" on a street of length k,
+    // which is (k over 2) or var(k, 2).
+    // Similarly, the variance of double ended streets is (k over 4) or var(k, 4).
     for (int i = 0; i < C->n_streets; i++)
     {
         int k = C->street_len[i];
@@ -160,124 +164,104 @@ int calc_poss(challenge *C, int boardsize)
         }
     }
 
-    int k = C->max_len;
-    int m;
+    // List all the possibilities of placing CR on single ended streets in E.
+    // List all the possibilities of placing CRRC on double ended streets in F.
+    // They are listed from shortest to longest, which means the first (l over 2)
+    // items of E are the possib. of placing CR on streets of length l, and the
+    // first (l over 4) items of F are the posssib. for double streets of length l.
+    int streetlen = C->max_len;
+    int nposs, poss;
 
-    m = var(k, 2);
-    int E[m][k];
-    for (int i = 0; i < m; i++)
+    nposs = var(streetlen, 2);
+    char E[nposs][streetlen];
+    for (int i = 0; i < nposs; i++)
     {
-        for (int j = 0; j < k; j++)
+        for (int j = 0; j < streetlen; j++)
         {
             E[i][j] = 0;
         }
     }
-    for (int x = 1; x <= k; x++)
+
+    nposs = var(streetlen, 4);
+    char F[nposs][streetlen];
+    for (int i = 0; i < nposs; i++)
     {
-        int start = var(x, 2);
-        int end = var(x+1, 2);
-
-
-        for (int i = start; i < end; i++)
-        {
-            E[i][x] = 2;
-        }
-
-        for (int i = 0; i < x; i++)
-        {
-            E[start + i][i] = 1;
-        }
-
-        if (end >= m)
-        {
-            break;
-        }
-    }
-
-    m = var(k, 4);
-    int F[m][k];
-    for (int i = 0; i < m; i++)
-    {
-        for (int j = 0; j < k; j++)
+        for (int j = 0; j < streetlen; j++)
         {
             F[i][j] = 0;
         }
     }
 
-    for (int x = 1; x <= k; x++)
+    // Fill E.
+    poss = 0;
+    for (int lastR = 1; lastR < streetlen; lastR++)
     {
-        int start = var(x, 4);
-        int end = var(x+1, 4);
-
-        for (int i = start; i < end; i++)
+        for (int firstC = 0; firstC < lastR; firstC++)
         {
-            F[i][x+2] = 1;
+            // Place a cop, and then a robber.
+            E[poss][firstC] = 1;
+            E[poss][lastR] = 2;
+            poss++;
         }
-
-        for (int i = 1; i < k; i++)
-        {
-            int ins = var(i, 3);
-            int out = var(i+1, 3);
-
-            for (int j = ins; j < out; j++)
-            {
-                F[start + j][i+1] = 2;
-            }
-
-            for (int j = 1; j < k; j++)
-            {
-                int go = var(j, 2);
-                int stop = var(j+1, 2);
-
-                for (int e = go; e < stop; e++)
-                {
-                    F[start + ins + e][j] = 2;
-                }
-                for (int e = 0; e < go; e++)
-                {
-                    F[start + ins + go + e][e] = 1;
-                }
-
-                if (start + ins + stop >= start + out)
-                    break;
-            }
-
-            if (start + out >= end)
-                break;
-        }
-
-        if (end >= m)
-            break;
     }
 
-    m = 1;
+    // Fill F.
+    poss = 0;
+    for (int lastC = 3; lastC < streetlen; lastC++)
+    {
+        for (int lastR = 2; lastR < lastC; lastR++)
+        {
+            for (int firstR = 1; firstR < lastR; firstR++)
+            {
+                for (int firstC = 0; firstC < firstR; firstC++)
+                {
+                    // Place a cop, then a robber, then another robber, then a cop.
+                    F[poss][firstC] = 1;
+                    F[poss][firstR] = 2;
+                    F[poss][lastR] = 2;
+                    F[poss][lastC] = 1;
+                    poss++;
+                }
+            }
+        }
+    }
 
+    // For each street and for each C possibility, fill at[][].
+    int m = 1;
     for (int x = 0; x < C->n_streets; x++)
     {
         for (int i = 0; i < C->n_poss; i++)
         {
-            int k = (i / m) % C->variance[x];
+            // Since n_poss is the product of the variances, (i/m) is the x-th digit.
+            // Here, poss is the choice in E or F, as above.
+            int poss = (i / m) % C->variance[x];
+
+            // For each possibility i, for each street x, fill the space
+            // C->street[x][j] of segment j with the the character
+            // (none/cop/robber) as perscribed by E[][j] and F[][j].
             for (int j = 0; j < C->street_len[x]; j++)
             {
                 if (C->openended[x])
                 {
-                    C->at[i][C->street[x][j]] = F[k][j];
+                    C->at[i][C->street[x][j]] = F[poss][j];
                 }
                 else
                 {
-                    C->at[i][C->street[x][j]] = E[k][j];
+                    C->at[i][C->street[x][j]] = E[poss][j];
                 }
             }
         }
+
         m *= C->variance[x];
     }
 
     return C->n_poss;
 }
 
+// Calculates k over s, or (k!)/((s!)(k-s)!).
 unsigned int var(unsigned int k, unsigned int s)
 {
-    if (k == 0 || s == 0)
+    if (k < s || s == 0)
     {
         return 0;
     }
