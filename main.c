@@ -151,135 +151,166 @@ int main(int argc, char* argv[])
     }
 
     if (logged)
+    {
         fprintf(log, "\n");
+    }
 
-    int num;
-    num = calc_poss(C, B->size);
-    printf("Number of possibilities: %i.\n\n", num);
+    int n_poss;
+    n_poss = calc_poss(C, B->size);
+    printf("Number of possibilities: %i.\n\n", n_poss);
     if (saved)
     {
-        fprintf(output, "Number of possibilities: %i.\n\n", num);
+        fprintf(output, "Number of possibilities: %i.\n\n", n_poss);
     }
 
     // BEGIN (OF HELL)
 
+    // Each piece will have an orientation and a position.
     int ori[n_pieces], spot[n_pieces];
-    bool t[n_pieces][B->size];
-    bool m[n_pieces][num];
+
+    // Taken[i] tells us what spaces have been taken after i pieces have been placed.
+    bool taken[n_pieces][B->size];
+
+    // Match[i] tells us what possibilities still remain after i pieces.
+    bool match[n_pieces][n_poss];
+
+    // Pc indicates which piece we are currently placing.
     int pc = 0;
     ori[0] = 0;
     spot[0] = 0;
-    int n_found = 0;
-    int work, busy, done = 0;
 
-    for (work = 0; work < MAX_WORK; work++)
+    // N_found tells us how many solutions we have found so far.
+    int n_found = 0;
+
+    // Start working until done, or until max_work is exceeded.
+    int work, busy;
+    bool done = false;
+    for (work = 0; !done && work < MAX_WORK; work++)
     {
-        for (busy = 0; busy < MAX_CALC; busy++)
+        for (busy = 0; !done && busy < MAX_CALC; busy++)
         {
+            // First, set the taken and match bitstrings.
             if (pc == 0)
             {
-                //fprintf(output, "pc == 0; (%i,%i)\n", ori[0], spot[0]);
                 for (int j = 0; j < B->size; j++)
                 {
-                    t[0][j] = B->blocked[j];
+                    taken[0][j] = B->blocked[j];
                 }
 
-                for (int j = 0; j < num; j++)
+                for (int j = 0; j < n_poss; j++)
                 {
-                    m[0][j] = true;
+                    match[0][j] = true;
                 }
             }
             else
             {
                 for (int j = 0; j < B->size; j++)
                 {
-                    t[pc][j] = t[pc - 1][j];
+                    taken[pc][j] = taken[pc - 1][j];
                 }
-                for (int j = 0; j < num; j++)
+                for (int j = 0; j < n_poss; j++)
                 {
-                    m[pc][j] = m[pc - 1][j];
+                    match[pc][j] = match[pc - 1][j];
                 }
             }
 
+            // If spot = 0, we have started a section where piece pc is turned
+            // in a specific way. Save this turned piece in Q.
             if (spot[pc] == 0)
+            {
                 turn(Q, P[pc], ori[pc], B->width);
+            }
 
             if (spot[pc] < B->size)
             {
+                bool fitsandmatches = false;
 
-                if (fits(B, t[pc], Q, spot[pc]))
+                if (fits(B, taken[pc], Q, spot[pc]))
                 {
                     if (logged)
-                        fprintf(log, "pc[%i]: %c; (%i,%i) fits", pc, Q->id, ori[pc], spot[pc]);
+                    {
+                        fprintf(log, "pc[%i]: %c; (%i,%i) fits",
+                                pc, Q->id, ori[pc], spot[pc]);
+                    }
 
-                    matches(m[pc], C, Q, spot[pc]);
+                    matches(match[pc], C, Q, spot[pc]);
 
-                    if (matchex(m[pc], num))
+                    // If there are still matchable possibilities:
+                    int m_left = matchex(match[pc], n_poss);
+                    if (m_left > 0)
                     {
                         if (logged)
+                        {
                             fprintf(log, " and matches");
+                        }
 
+                        fitsandmatches = true;
+
+                        // Mark each space occupied by the current piece as taken.
                         for (int i = 0; i < Q->num; i++)
                         {
-                            t[pc][spot[pc] + Q->pos[i]] = 1;
+                            taken[pc][spot[pc] + Q->pos[i]] = true;
                         };
 
                         if (pc == n_pieces - 1)
                         {
+                            // If this is the last piece, we have found a solution.
                             if (verbatim)
                             {
                                 printf("Found ");
                                 for (int i = 0; i < n_pieces; i++)
                                 {
-                                    printf("p%i r%i/at%i, ", i, ori[i], spot[i]);
+                                    printf("p%i r%i/at%i, ",
+                                            i, ori[i], spot[i]);
                                 }
-                                printf("(%i)", matchex(m[pc], num));
+                                printf("(%i)", m_left);
                                 printf("\n");
                             }
+
                             if (saved)
                             {
                                 fprintf(output, "Found ");
                                 for (int i = 0; i < n_pieces; i++)
                                 {
-                                    fprintf(output, "p%i r%i/at%i, ", i, ori[i], spot[i]);
+                                    fprintf(output, "p%i r%i/at%i, ",
+                                            i, ori[i], spot[i]);
                                 }
-                                fprintf(output, "(%i)", matchex(m[pc], num));
+                                fprintf(output, "(%i)", m_left);
                                 fprintf(output, "\n");
                             }
+
                             n_found += 1;
+
+                            // Continue to the next spot.
                             spot[pc] += 1;
                         }
                         else
                         {
+                            // If this is not the last piece, go deeper.
                             pc += 1;
-                            for (int j = 0; j < num; j++)
-                            {
-                                m[pc][j] = m[pc - 1][j];
-                            }
-                            for (int j = 0; j < B->size; j++)
-                            {
-                                t[pc][j] = t[pc - 1][j];
-                            }
                             ori[pc] = 0;
                             spot[pc] = 0;
                         }
                     }
+
                     if (logged)
+                    {
                         fprintf(log, "\n");
+                    }
                 }
-                else
+
+                if (!fitsandmatches)
                 {
                     spot[pc] += 1;
                 }
             }
 
-            if (!matchex(m[pc], num))
-                spot[pc] += 1;
             if (spot[pc] >= B->size)
             {
                 ori[pc] += 1;
                 spot[pc] = 0;
             }
+
             if (ori[pc] >= 4)
             {
                 pc -= 1;
@@ -289,18 +320,17 @@ int main(int argc, char* argv[])
                     turn(Q, P[pc], ori[pc], B->width);
                 }
             }
+
             if (pc < 0)
             {
-                done = 1;
-                break;
+                done = true;
             }
         }
-        if (done)
-            break;
-        else
+
+        if (!done)
         {
             printf("[ %i%% || %i million calc. perf. ]\n",
-                   25 * spot[0] / B->size + 25 * ori[0], work + 1);
+                   (25 * ori[0] + 25 * spot[0] / B->size), work + 1);
         }
     }
 
@@ -310,15 +340,21 @@ int main(int argc, char* argv[])
     }
 
     if (work == 0)
+    {
         printf("\nNumber of calculations performed: %i.\n", busy + 1);
+    }
     else
+    {
         printf("\nNumber of calculations performed: over %i million.\n", work);
+    }
 
     if (done)
     {
         printf("\nFound %i solutions.\n", n_found);
         if (saved)
+        {
             fprintf(output, "\nFound %i solutions.\n", n_found);
+        }
     }
 
     // END

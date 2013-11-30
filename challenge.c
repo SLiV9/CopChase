@@ -114,6 +114,11 @@ unsigned int var(unsigned int k, unsigned int s);
 
 int calc_poss(challenge *C, int boardsize)
 {
+    if (C->n_streets == 0)
+    {
+        return 1;
+    }
+
     // If any of the streets have length less than 2, or if any of the
     // openended streets have length less than 4, this challenge is unsolvable.
     // The number of possibilities to place CR on a street of length k, is the same
