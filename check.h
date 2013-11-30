@@ -1,4 +1,3 @@
-int fits(board* B, char* taken, piece* P, int spot);
-void matches(char* M, challenge* C, piece* P, int spot);
-int matchex(char* M, int num);
-void binarystring(int len, int m);
+int fits(board* B, bool* taken, piece* P, int spot);
+void matches(bool* M, challenge* C, piece* P, int spot);
+int matchex(bool* M, int num);

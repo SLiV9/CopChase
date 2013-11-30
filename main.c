@@ -164,8 +164,8 @@ int main(int argc, char* argv[])
     // BEGIN (OF HELL)
 
     int ori[n_pieces], spot[n_pieces];
-    char t[n_pieces][B->size];
-    char m[n_pieces][num];
+    bool t[n_pieces][B->size];
+    bool m[n_pieces][num];
     int pc = 0;
     ori[0] = 0;
     spot[0] = 0;
@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
 
                 for (int j = 0; j < num; j++)
                 {
-                    m[0][j] = 1;
+                    m[0][j] = true;
                 }
             }
             else
@@ -218,8 +218,6 @@ int main(int argc, char* argv[])
                     {
                         if (logged)
                             fprintf(log, " and matches");
-                        //binarystring(n_pieces, (1 << (n_pieces - 1 - pc)));
-                        //printf(" <<\n");
 
                         for (int i = 0; i < Q->num; i++)
                         {
@@ -236,7 +234,6 @@ int main(int argc, char* argv[])
                                     printf("p%i r%i/at%i, ", i, ori[i], spot[i]);
                                 }
                                 printf("(%i)", matchex(m[pc], num));
-                                //binarystring(C->n_poss, m[pc]);
                                 printf("\n");
                             }
                             if (saved)
@@ -247,7 +244,6 @@ int main(int argc, char* argv[])
                                     fprintf(output, "p%i r%i/at%i, ", i, ori[i], spot[i]);
                                 }
                                 fprintf(output, "(%i)", matchex(m[pc], num));
-                                //binarystring(C->n_poss, m[pc]);
                                 fprintf(output, "\n");
                             }
                             n_found += 1;

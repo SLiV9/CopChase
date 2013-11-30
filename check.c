@@ -8,83 +8,89 @@
 #include "challenge.h"
 #include "check.h"
 
-int fits(board* B, char* taken, piece* P, int spot)
+// Checks if the piece fits.
+// If its out of bounds, if it overlaps another piece or if it overflows the edge,
+// it does not fit. Otherwise, it fits.
+int fits(board* B, bool* taken, piece* P, int spot)
 {
+    // Determine if the spot is in bounds and not taken.
     if (spot < 0 || spot >= B->size)
-        return 0;
-    if (taken[spot])
-        return 0;
-    int i, j;
-    for (i = 1; i < P->num; i++)
     {
-        if (spot + P->pos[i] < 0)
-            return 0;
-        if (spot + P->pos[i] >= B->size)
-            return 0;
-        if (taken[spot + P->pos[i]])
-            return 0;
+        return 0;
     }
-    for (i = 0; i < P->num - 1; i++)
+    if (taken[spot])
     {
-        for (j = i + 1; j < P->num; j++)
+        return 0;
+    }
+
+    // Determine if all the segments are in bounds and not taken.
+    for (int i = 1; i < P->num; i++)
+    {
+        int spi = spot + P->pos[i];
+        if (spi < 0 || spi >= B->size)
+        {
+            return 0;
+        }
+        if (taken[spi])
+        {
+            return 0;
+        }
+    }
+
+    // Determine if any overflowing occurs:
+    // If two pieces have the same dy, they should end up on the same board row.
+    for (int i = 0; i < P->num - 1; i++)
+    {
+        for (int j = i + 1; j < P->num; j++)
         {
             if (P->dy[j] == P->dy[i])
             {
                 if ((spot + P->pos[j]) / B->width != (spot + P->pos[i]) / B->width)
                 {
-                return 0;
+                    return 0;
                 }
             }
         }
     }
+
     return 1;
 }
 
-void matches(char* M, challenge* C, piece* P, int spot)
+// Determines which possibilities of a challenge a piece matches.
+void matches(bool* M, challenge* C, piece* P, int spot)
 {
-    int i, j, ok;
-
-    if (C->n_streets > 0)
-    for (i = 0; i < C->n_poss; i++)
+    // If the challenge is empty (i.e. has no streets),
+    // a piece always matches. Empty challenges are used
+    // to determine the number of permutations of pieces
+    // on a board.
+    if (C->n_streets == 0)
     {
-        ok = M[i];
-        for (j = 0; ok && j < P->num; j++)
+        return;
+    }
+
+    for (int i = 0; i < C->n_poss; i++)
+    {
+        for (int j = 0; j < P->num; j++)
         {
             if (C->at[i][spot + P->pos[j]] != P->at[j])
             {
-                ok = 0;
+                M[i] = false;
+                break;
             }
         }
-        M[i] = ok;
     }
 }
 
-int matchex(char* M, int num)
+// Sums up all num values of bitstring M.
+int matchex(bool* M, int num)
 {
-    int i, count = 0;
-    for (i = 0; i < num; i++)
+    int count = 0;
+    for (int i = 0; i < num; i++)
     {
         if (M[i])
+        {
             count++;
+        }
     }
     return count;
-}
-
-void binarystring(int len, int m)
-{
-    char str[len+4];
-    str[0]='>';
-    str[1]='>';
-    str[2]=' ';
-    str[len+3]='\0';
-    int i;
-    for (i = 0; i < len; i++)
-    {
-        if (m % 2)
-            str[len+2-i] = 'x';
-        else
-            str[len+2-i] = '_';
-        m = m / 2;
-    }
-    printf("%s", str);
 }
