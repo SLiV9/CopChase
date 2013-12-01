@@ -59,7 +59,7 @@ challenge* import_challenge(FILE* f)
 
             if (e != '.')
             {
-                printf("<< Unknown openended char '%c'", e);
+                printf("<< Unknown openended char '%c'\n", e);
             }
         }
     }

@@ -183,8 +183,8 @@ int main(int argc, char* argv[])
     int n_found = 0;
 
     // Start working until done, or until max_work is exceeded.
-    int work, busy;
-    bool done = false;
+    int work = 0, busy = 0;
+    bool done = (n_poss == 0);
     for (work = 0; !done && work < MAX_WORK; work++)
     {
         for (busy = 0; !done && busy < MAX_CALC; busy++)
@@ -327,7 +327,11 @@ int main(int argc, char* argv[])
             }
         }
 
-        if (!done)
+        if (done)
+        {
+            break;
+        }
+        else
         {
             printf("[ %i%% || %i million calc. perf. ]\n",
                    (25 * ori[0] + 25 * spot[0] / B->size), work + 1);
