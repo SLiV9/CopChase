@@ -9,7 +9,7 @@
 #include "check.h"
 
 #define MAJOR 2
-#define MINOR 0
+#define MINOR 1
 #define MAX_CALC 1000000
 #define MAX_WORK 5000
 

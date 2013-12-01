@@ -15,7 +15,7 @@ challenge* import_challenge(FILE* f)
     C->street = malloc(n_streets * sizeof(int*));
     C->street_len = malloc(n_streets * sizeof(int));
     C->variance = malloc(n_streets * sizeof(int));
-    C->openended = malloc(n_streets * sizeof(char));
+    C->openended = malloc(n_streets * sizeof(bool));
 
     // Max_len is the maximum number of segments for a street.
     C->max_len = 0;
@@ -131,20 +131,10 @@ int calc_poss(challenge *C, int boardsize)
 
         if (C->openended[i])
         {
-            if (k < 4)
-            {
-                return 0;
-            }
-
             C->variance[i] = var(k, 4);
         }
         else
         {
-            if (k < 2)
-            {
-                return 0;
-            }
-
             C->variance[i] = var(k, 2);
         }
     }
@@ -271,10 +261,15 @@ unsigned int var(unsigned int k, unsigned int s)
         return 0;
     }
 
+    // First multiply, then divide, since 2/3 = 0.
     unsigned int r = k;
     for (unsigned int i = 1; i < s; i++)
     {
-        k *= (k-i) / (i+1);
+        r *= k-i;
+    }
+    for (unsigned int i = 2; i <= s; i++)
+    {
+        r /= i;
     }
 
     return r;
